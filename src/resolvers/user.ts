@@ -1,17 +1,15 @@
 
 import { User } from "../entities/User";
-import { MyContext } from "src/types";
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { MyContext } from "../types";
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from 'argon2';
 import { EntityManager } from '@mikro-orm/postgresql';
-
-@InputType()
-class UsernamePasswordInput {
-    @Field()
-    username: string
-    @Field()
-    password: string
-}
+import { COOKIE_NAME, FORGOT_PASSWORD_LINK_EXPIRATION_DATE, FORGOT_PASSWORD_PREFIX } from "../constants";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import validateRegister from "../utils/validateRegister";
+import sendEmail from "../utils/sendEmail";
+import { v4 } from "uuid";
+import prettyMilliseconds from "pretty-ms";
 
 @ObjectType()
 class FieldError {
@@ -32,6 +30,75 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+    @Mutation(()=>Boolean)
+    async forgotPassword(
+        @Arg('email') email: string,
+        @Ctx() { em, redis }: MyContext
+    ) {
+        const user = await em.findOne(User, { email: email });
+        if(!user){
+            return true;
+        }
+
+        const token = v4();
+        await redis.set(FORGOT_PASSWORD_PREFIX + token, user.id, 'ex', FORGOT_PASSWORD_LINK_EXPIRATION_DATE)
+        const resetPasswordLink = `<a href="http://localhost:3000/change-password/${token}">Reset password (valid for ${prettyMilliseconds(FORGOT_PASSWORD_LINK_EXPIRATION_DATE, {verbose: true})})</a>`;
+        sendEmail(email, resetPasswordLink);
+        return true;
+    }
+
+    @Mutation(()=>UserResponse)
+    async changePassword(
+        @Arg('token') token: string,
+        @Arg('newPassword') newPassword: string,
+        @Ctx() { em, redis, req }: MyContext
+    ): Promise<UserResponse> {
+        if(newPassword.length <= 2) {
+            return {
+                errors: [
+                    {
+                        field: 'newPassword',
+                        message: 'invalid password length'
+                    }
+                ]
+            };
+        }
+
+        const key = FORGOT_PASSWORD_PREFIX + token;
+        const userId = await redis.get(key);
+        if(!userId){
+            return {
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'token expired'
+                    }
+                ]
+            };
+        }
+
+        const user = await em.findOne(User, {id: parseInt(userId)});
+
+        if(!user){
+            return {
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'user no longer exists'
+                    }
+                ]
+            };
+        }
+
+        user.password = await argon2.hash(newPassword);
+        em.persistAndFlush(user);
+
+        await redis.del(key);
+        req.session.userId = user.id; // auto-login after password change
+
+        return { user };
+    }
+
     @Query(()=>User, {nullable: true})
     async me(
         @Ctx() { req, em }: MyContext
@@ -49,25 +116,9 @@ export class UserResolver {
         @Arg('options') options: UsernamePasswordInput,
         @Ctx() {em, req }: MyContext
     ): Promise<UserResponse> {
-        if(options.username.length <= 2) {
-            return {
-                errors: [
-                    {
-                        field: 'username',
-                        message: 'invalid username length'
-                    }
-                ]
-            }
-        }
-        if(options.password.length <= 2) {
-            return {
-                errors: [
-                    {
-                        field: 'password',
-                        message: 'invalid password length'
-                    }
-                ]
-            }
+        const errors = validateRegister(options);
+        if(errors) {
+            return { errors };
         }
         const hashedPassword = await argon2.hash(options.password);
         let user;
@@ -78,6 +129,7 @@ export class UserResolver {
                 .insert({
                     username: options.username, 
                     password: hashedPassword,
+                    email: options.email,
                     created_at: new Date(),
                     updated_at: new Date(),
                 })
@@ -90,7 +142,7 @@ export class UserResolver {
                 return {
                     errors: [
                         {
-                            field:'username',
+                            field:'usernameOrEmail',
                             message:'username has already been taken'
                         }
                     ],
@@ -106,10 +158,16 @@ export class UserResolver {
 
     @Mutation(() => UserResponse)
     async login(
-        @Arg('options') options: UsernamePasswordInput,
+        @Arg('usernameOrEmail') usernameOrEmail: string,
+        @Arg('password') password: string,
         @Ctx() {em, req}: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, {username: options.username});
+        const user = await em.findOne(
+            User, 
+            { $or: [
+                {username: usernameOrEmail}, {email: usernameOrEmail}
+            ]}
+        );
         if(!user){
             return {
                 errors: [
@@ -120,7 +178,7 @@ export class UserResolver {
                 ]
             };
         }
-        const valid = await argon2.verify(user.password, options.password);
+        const valid = await argon2.verify(user.password, password);
         if(!valid){
             return {
                 errors: [
@@ -135,5 +193,22 @@ export class UserResolver {
         req.session.userId = user.id;
 
         return { user };
+    }
+
+    @Mutation(()=> Boolean)
+    logout(
+        @Ctx() { req, res }: MyContext
+    ) {
+        return new Promise(resolve => req.session.destroy(
+            (err: Error) => {
+                res.clearCookie(COOKIE_NAME);
+                if(err) {
+                    console.log(err);
+                    resolve(false);
+                    return;
+                }
+                resolve(true);
+            }
+        ));
     }
 }
