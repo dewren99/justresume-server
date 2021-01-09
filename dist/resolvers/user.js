@@ -61,9 +61,11 @@ UserResponse = __decorate([
     type_graphql_1.ObjectType()
 ], UserResponse);
 let UserResolver = class UserResolver {
-    forgotPassword(email, { em, redis }) {
+    forgotPassword(email, { redis }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield em.findOne(User_1.User, { email: email });
+            const user = yield User_1.User.findOne({
+                where: { email: email }
+            });
             if (!user) {
                 return true;
             }
@@ -74,7 +76,7 @@ let UserResolver = class UserResolver {
             return true;
         });
     }
-    changePassword(token, newPassword, { em, redis, req }) {
+    changePassword(token, newPassword, { redis, req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (newPassword.length <= 2) {
                 return {
@@ -98,7 +100,8 @@ let UserResolver = class UserResolver {
                     ]
                 };
             }
-            const user = yield em.findOne(User_1.User, { id: parseInt(userId) });
+            const userIdInt = parseInt(userId);
+            const user = yield User_1.User.findOne(userIdInt);
             if (!user) {
                 return {
                     errors: [
@@ -109,23 +112,20 @@ let UserResolver = class UserResolver {
                     ]
                 };
             }
-            user.password = yield argon2_1.default.hash(newPassword);
-            em.persistAndFlush(user);
+            yield User_1.User.update({ id: userIdInt }, { password: yield argon2_1.default.hash(newPassword) });
             yield redis.del(key);
             req.session.userId = user.id;
             return { user };
         });
     }
-    me({ req, em }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!req.session.userId) {
-                return null;
-            }
-            const user = yield em.findOne(User_1.User, { id: req.session.userId });
-            return user;
-        });
+    me({ req }) {
+        if (!req.session.userId) {
+            return null;
+        }
+        return User_1.User.findOne(req.session.userId);
+        ;
     }
-    register(options, { em, req }) {
+    register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             const errors = validateRegister_1.default(options);
             if (errors) {
@@ -134,19 +134,12 @@ let UserResolver = class UserResolver {
             const hashedPassword = yield argon2_1.default.hash(options.password);
             let user;
             try {
-                const result = yield em
-                    .createQueryBuilder(User_1.User)
-                    .getKnexQuery()
-                    .insert({
+                user = yield User_1.User.create({
                     username: options.username,
                     password: hashedPassword,
                     email: options.email,
-                    created_at: new Date(),
-                    updated_at: new Date(),
-                })
-                    .returning('*');
-                user = result[0];
-                yield em.persistAndFlush(user);
+                }).save();
+                console.log('user: ', user);
             }
             catch (e) {
                 if (e.code === '23505') {
@@ -165,11 +158,14 @@ let UserResolver = class UserResolver {
             return { user };
         });
     }
-    login(usernameOrEmail, password, { em, req }) {
+    login(usernameOrEmail, password, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const user = yield em.findOne(User_1.User, { $or: [
-                    { username: usernameOrEmail }, { email: usernameOrEmail }
-                ] });
+            const user = yield User_1.User.findOne({
+                where: [
+                    { username: usernameOrEmail },
+                    { email: usernameOrEmail }
+                ],
+            });
             if (!user) {
                 return {
                     errors: [
@@ -229,7 +225,7 @@ __decorate([
     __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+    __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "me", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
