@@ -13,6 +13,7 @@ exports.Post = exports.PostInput = void 0;
 const typeorm_1 = require("typeorm");
 const type_graphql_1 = require("type-graphql");
 const User_1 = require("./User");
+const Upvote_1 = require("./Upvote");
 let PostInput = class PostInput {
 };
 __decorate([
@@ -65,9 +66,14 @@ __decorate([
     __metadata("design:type", Number)
 ], Post.prototype, "creatorId", void 0);
 __decorate([
+    type_graphql_1.Field(),
     typeorm_1.ManyToOne(() => User_1.User, user => user.posts),
     __metadata("design:type", User_1.User)
 ], Post.prototype, "creator", void 0);
+__decorate([
+    typeorm_1.OneToMany(() => Upvote_1.Upvote, (upvote) => upvote.post),
+    __metadata("design:type", Array)
+], Post.prototype, "upvotes", void 0);
 Post = __decorate([
     type_graphql_1.ObjectType(),
     typeorm_1.Entity()
