@@ -25,15 +25,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserResolver = void 0;
-const User_1 = require("../entities/User");
-const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
-const constants_1 = require("../constants");
-const UsernamePasswordInput_1 = require("./UsernamePasswordInput");
-const validateRegister_1 = __importDefault(require("../utils/validateRegister"));
-const sendEmail_1 = __importDefault(require("../utils/sendEmail"));
-const uuid_1 = require("uuid");
 const pretty_ms_1 = __importDefault(require("pretty-ms"));
+const type_graphql_1 = require("type-graphql");
+const uuid_1 = require("uuid");
+const constants_1 = require("../constants");
+const User_1 = require("../entities/User");
+const sendEmail_1 = __importDefault(require("../utils/sendEmail"));
+const validateRegister_1 = __importDefault(require("../utils/validateRegister"));
+const UsernamePasswordInput_1 = require("./UsernamePasswordInput");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -118,11 +118,36 @@ let UserResolver = class UserResolver {
             return { user };
         });
     }
+    setAboutMe(text, { req }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { userId } = req.session;
+            let user = yield User_1.User.findOne(userId);
+            if (!user) {
+                return ({
+                    errors: [
+                        {
+                            field: 'token',
+                            message: 'user no longer exists'
+                        }
+                    ]
+                });
+            }
+            user.aboutMe = text;
+            yield User_1.User.update({ id: userId }, { aboutMe: text });
+            return { user };
+        });
+    }
     me({ req }) {
         if (!req.session.userId) {
             return null;
         }
         return User_1.User.findOne(req.session.userId);
+    }
+    getUser(username, { req }) {
+        if (username) {
+            return User_1.User.findOne({ username: username });
+        }
+        return null;
     }
     register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -220,12 +245,28 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "changePassword", null);
 __decorate([
+    type_graphql_1.Mutation(() => UserResponse),
+    __param(0, type_graphql_1.Arg('text')),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "setAboutMe", null);
+__decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
     __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "me", null);
+__decorate([
+    type_graphql_1.Query(() => User_1.User, { nullable: true }),
+    __param(0, type_graphql_1.Arg('username')),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], UserResolver.prototype, "getUser", null);
 __decorate([
     type_graphql_1.Mutation(() => UserResponse),
     __param(0, type_graphql_1.Arg('options')),

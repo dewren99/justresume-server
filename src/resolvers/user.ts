@@ -1,14 +1,15 @@
 
+import argon2 from 'argon2';
+import prettyMilliseconds from "pretty-ms";
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { v4 } from "uuid";
+import { COOKIE_NAME, FORGOT_PASSWORD_LINK_EXPIRATION_DATE, FORGOT_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
 import { MyContext } from "../types";
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
-import argon2 from 'argon2';
-import { COOKIE_NAME, FORGOT_PASSWORD_LINK_EXPIRATION_DATE, FORGOT_PASSWORD_PREFIX } from "../constants";
-import { UsernamePasswordInput } from "./UsernamePasswordInput";
-import validateRegister from "../utils/validateRegister";
 import sendEmail from "../utils/sendEmail";
-import { v4 } from "uuid";
-import prettyMilliseconds from "pretty-ms";
+import validateRegister from "../utils/validateRegister";
+import { idOrUsernameInput } from './idOrUsernameInput';
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
 
 @ObjectType()
 class FieldError {
@@ -104,6 +105,29 @@ export class UserResolver {
         return { user };
     }
 
+    @Mutation(() => UserResponse)
+    async setAboutMe(
+        @Arg('text') text: string,
+        @Ctx() { req }: MyContext
+    ): Promise<UserResponse> {
+        const { userId } = req.session;
+        let user = await User.findOne(userId);
+        if(!user){
+            return({
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'user no longer exists'
+                    }
+                ]
+            });
+        }
+        user.aboutMe = text;
+        await User.update({id: userId}, {aboutMe: text});
+        return { user };
+    }
+
+
     @Query(()=>User, {nullable: true})
     me(@Ctx() { req }: MyContext) {
         if(!req.session.userId){
@@ -111,6 +135,22 @@ export class UserResolver {
         }
 
         return User.findOne(req.session.userId);
+    }
+
+    @Query(()=>User, {nullable: true})
+    getUser(
+        @Arg('username') username: string,
+        @Ctx() { req }: MyContext
+        // @Arg('options') options: idOrUsernameInput,
+    ) {
+        // const {username, id} = options;
+        // if(id){
+        //     return User.findOne(id);
+        // }
+        if(username){
+            return User.findOne({username: username});
+        }
+        return null;
     }
 
     @Mutation(() => UserResponse)
