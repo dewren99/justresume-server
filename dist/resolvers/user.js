@@ -123,7 +123,6 @@ let UserResolver = class UserResolver {
             return null;
         }
         return User_1.User.findOne(req.session.userId);
-        ;
     }
     register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {

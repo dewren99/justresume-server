@@ -1,21 +1,18 @@
-import 'reflect-metadata';
-import { COOKIE_NAME, __prod__ } from './constants';
-import express from 'express';
-import {ApolloServer} from 'apollo-server-express';
-import { buildSchema } from 'type-graphql';
-import { HelloResolver } from './resolvers/hello';
-import { PostResolver } from './resolvers/post';
-import { UserResolver } from './resolvers/user';
-import Redis from 'ioredis';
-import session from 'express-session';
+import { ApolloServer } from 'apollo-server-express';
 import connectRedis from 'connect-redis';
-import { MyContext } from './types';
 import cors from 'cors';
-import { User } from './entities/User';
-import {createConnection} from 'typeorm';
-import { Post } from './entities/Post';
+import express from 'express';
+import session from 'express-session';
+import Redis from 'ioredis';
 import path from 'path';
-import { Upvote } from './entities/Upvote';
+import 'reflect-metadata';
+import { buildSchema } from 'type-graphql';
+import { createConnection } from 'typeorm';
+import { COOKIE_NAME } from './constants';
+import { User } from './entities/User';
+import { HelloResolver } from './resolvers/hello';
+import { UserResolver } from './resolvers/user';
+import { MyContext } from './types';
 
 const main = async () => {
     const conn = await createConnection({
@@ -26,7 +23,7 @@ const main = async () => {
         logging: true,
         synchronize: true,
         migrations: [path.join(__dirname, "./migrations/*")],
-        entities: [Post, User, Upvote]
+        entities: [User]
     });
 
     await conn.runMigrations();
@@ -62,7 +59,7 @@ const main = async () => {
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [HelloResolver, PostResolver, UserResolver],
+            resolvers: [HelloResolver, UserResolver],
             validate: false,
         }),
         context: ({req, res}): MyContext => ({ req, res, redis }),
@@ -84,4 +81,3 @@ try{
 catch(e){
     console.log(e)
 }
-//
