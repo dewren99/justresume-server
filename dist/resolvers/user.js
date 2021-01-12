@@ -27,13 +27,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserResolver = void 0;
 const argon2_1 = __importDefault(require("argon2"));
 const pretty_ms_1 = __importDefault(require("pretty-ms"));
+const capitalizeFirstLetter_1 = require("../utils/capitalizeFirstLetter");
+const splitOnUpperCase_1 = require("../utils/splitOnUpperCase");
 const type_graphql_1 = require("type-graphql");
 const uuid_1 = require("uuid");
 const constants_1 = require("../constants");
 const User_1 = require("../entities/User");
 const sendEmail_1 = __importDefault(require("../utils/sendEmail"));
 const validateRegister_1 = __importDefault(require("../utils/validateRegister"));
-const UsernamePasswordInput_1 = require("./UsernamePasswordInput");
+const RegisterUserInput_1 = require("./RegisterUserInput");
 let FieldError = class FieldError {
 };
 __decorate([
@@ -137,13 +139,46 @@ let UserResolver = class UserResolver {
             return { user };
         });
     }
+    setFullName(text, { req }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { userId } = req.session;
+            let user = yield User_1.User.findOne(userId);
+            if (!user) {
+                return ({
+                    errors: [
+                        {
+                            field: 'token',
+                            message: 'user no longer exists'
+                        }
+                    ]
+                });
+            }
+            const fullName = text.split(' ');
+            if (fullName.length < 2) {
+                return ({
+                    errors: [
+                        {
+                            field: 'fullName',
+                            message: 'First or last name is missing'
+                        }
+                    ]
+                });
+            }
+            const firstName = fullName.filter((_name, i, nameArr) => { var _a; return (_a = nameArr.length - 1 !== i) !== null && _a !== void 0 ? _a : false; }).join(' ');
+            const lastName = fullName[fullName.length - 1];
+            user.firstName = firstName;
+            user.lastName = lastName;
+            yield User_1.User.update({ id: userId }, { firstName: firstName, lastName: lastName });
+            return { user };
+        });
+    }
     me({ req }) {
         if (!req.session.userId) {
             return null;
         }
         return User_1.User.findOne(req.session.userId);
     }
-    getUser(username, { req }) {
+    getUser(username) {
         if (username) {
             return User_1.User.findOne({ username: username });
         }
@@ -158,20 +193,18 @@ let UserResolver = class UserResolver {
             const hashedPassword = yield argon2_1.default.hash(options.password);
             let user;
             try {
-                user = yield User_1.User.create({
-                    username: options.username,
-                    password: hashedPassword,
-                    email: options.email,
-                }).save();
-                console.log('user: ', user);
+                user = yield User_1.User.create(Object.assign(Object.assign({}, options), { password: hashedPassword })).save();
             }
             catch (e) {
                 if (e.code === '23505') {
+                    const { detail } = e;
+                    const field = detail.slice(detail.indexOf('(') + 1, detail.indexOf(')'));
+                    console.log(detail, field);
                     return {
                         errors: [
                             {
-                                field: 'usernameOrEmail',
-                                message: 'username has already been taken'
+                                field: field,
+                                message: `${capitalizeFirstLetter_1.capitalizeFirstLetter(splitOnUpperCase_1.splitOnUpperCase(field).join(' ').toLowerCase())} has already been taken`
                             }
                         ],
                     };
@@ -253,6 +286,14 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "setAboutMe", null);
 __decorate([
+    type_graphql_1.Mutation(() => UserResponse),
+    __param(0, type_graphql_1.Arg('text')),
+    __param(1, type_graphql_1.Ctx()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], UserResolver.prototype, "setFullName", null);
+__decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
     __param(0, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
@@ -262,9 +303,8 @@ __decorate([
 __decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
     __param(0, type_graphql_1.Arg('username')),
-    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "getUser", null);
 __decorate([
@@ -272,7 +312,7 @@ __decorate([
     __param(0, type_graphql_1.Arg('options')),
     __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [UsernamePasswordInput_1.UsernamePasswordInput, Object]),
+    __metadata("design:paramtypes", [RegisterUserInput_1.RegisterUserInput, Object]),
     __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "register", null);
 __decorate([

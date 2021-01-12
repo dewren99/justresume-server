@@ -13,8 +13,11 @@ import { User } from './entities/User';
 import { HelloResolver } from './resolvers/hello';
 import { UserResolver } from './resolvers/user';
 import { MyContext } from './types';
+import { s3 } from './utils/AWS';
 
 const main = async () => {
+
+    
     const conn = await createConnection({
         type: 'postgres',
         database: 'justresume_v2',

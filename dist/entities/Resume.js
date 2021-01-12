@@ -9,58 +9,39 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.User = void 0;
-const typeorm_1 = require("typeorm");
+exports.Resume = void 0;
 const type_graphql_1 = require("type-graphql");
-let User = class User extends typeorm_1.BaseEntity {
+const typeorm_1 = require("typeorm");
+let Resume = class Resume extends typeorm_1.BaseEntity {
 };
 __decorate([
     type_graphql_1.Field(),
     typeorm_1.PrimaryGeneratedColumn(),
     __metadata("design:type", Number)
-], User.prototype, "id", void 0);
+], Resume.prototype, "id", void 0);
 __decorate([
     type_graphql_1.Field(),
-    typeorm_1.Column({ unique: true }),
-    __metadata("design:type", String)
-], User.prototype, "username", void 0);
+    typeorm_1.Column({ nullable: true }),
+    __metadata("design:type", Number)
+], Resume.prototype, "ownerId", void 0);
 __decorate([
     type_graphql_1.Field(() => String, { nullable: true }),
     typeorm_1.Column({ nullable: true }),
     __metadata("design:type", String)
-], User.prototype, "firstName", void 0);
-__decorate([
-    type_graphql_1.Field(() => String, { nullable: true }),
-    typeorm_1.Column({ nullable: true }),
-    __metadata("design:type", String)
-], User.prototype, "lastName", void 0);
-__decorate([
-    type_graphql_1.Field(),
-    typeorm_1.Column({ unique: true }),
-    __metadata("design:type", String)
-], User.prototype, "email", void 0);
-__decorate([
-    typeorm_1.Column(),
-    __metadata("design:type", String)
-], User.prototype, "password", void 0);
-__decorate([
-    type_graphql_1.Field(() => String, { nullable: true }),
-    typeorm_1.Column({ nullable: true }),
-    __metadata("design:type", String)
-], User.prototype, "aboutMe", void 0);
+], Resume.prototype, "resumeLink", void 0);
 __decorate([
     type_graphql_1.Field(() => String),
     typeorm_1.CreateDateColumn(),
     __metadata("design:type", Date)
-], User.prototype, "createdAt", void 0);
+], Resume.prototype, "createdAt", void 0);
 __decorate([
     type_graphql_1.Field(() => String),
     typeorm_1.UpdateDateColumn(),
     __metadata("design:type", Date)
-], User.prototype, "updatedAt", void 0);
-User = __decorate([
+], Resume.prototype, "updatedAt", void 0);
+Resume = __decorate([
     type_graphql_1.ObjectType(),
     typeorm_1.Entity()
-], User);
-exports.User = User;
-//# sourceMappingURL=User.js.map
+], Resume);
+exports.Resume = Resume;
+//# sourceMappingURL=Resume.js.map

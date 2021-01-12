@@ -1,11 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 function validateRegister(options) {
-    if (!options.email.includes('@')) {
+    if (!options.firstName) {
         return [
             {
-                field: 'email',
-                message: 'invalid email'
+                field: 'firstName',
+                message: 'First name cannot be empty'
+            }
+        ];
+    }
+    if (!options.lastName) {
+        return [
+            {
+                field: 'lastName',
+                message: 'Last name cannot be empty'
             }
         ];
     }
@@ -14,6 +22,14 @@ function validateRegister(options) {
             {
                 field: 'username',
                 message: 'invalid username length'
+            }
+        ];
+    }
+    if (!options.email.includes('@')) {
+        return [
+            {
+                field: 'email',
+                message: 'invalid email'
             }
         ];
     }

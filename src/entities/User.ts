@@ -10,17 +10,17 @@ export class User extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Field(() => String)
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @Field(() => String)
-  @UpdateDateColumn()
-  updatedAt: Date;
-
   @Field()
   @Column({unique: true})
   username!: string;
+
+  @Field(() => String, {nullable: true})
+  @Column({nullable: true})
+  firstName!: string;
+
+  @Field(() => String, {nullable: true})
+  @Column({nullable: true})
+  lastName!: string;
 
   @Field()
   @Column({unique: true})
@@ -29,9 +29,17 @@ export class User extends BaseEntity {
   @Column()
   password!: string;
 
-  @Field()
+  @Field(() => String, {nullable: true})
   @Column({nullable: true})
   aboutMe?: string;
+
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @Field(() => String)
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   // @OneToMany(()=>Post, post=>post.creator)
   // posts: Post[];

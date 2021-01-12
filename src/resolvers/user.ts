@@ -1,6 +1,8 @@
 
 import argon2 from 'argon2';
 import prettyMilliseconds from "pretty-ms";
+import { capitalizeFirstLetter } from '../utils/capitalizeFirstLetter';
+import { splitOnUpperCase } from '../utils/splitOnUpperCase';
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import { v4 } from "uuid";
 import { COOKIE_NAME, FORGOT_PASSWORD_LINK_EXPIRATION_DATE, FORGOT_PASSWORD_PREFIX } from "../constants";
@@ -8,8 +10,7 @@ import { User } from "../entities/User";
 import { MyContext } from "../types";
 import sendEmail from "../utils/sendEmail";
 import validateRegister from "../utils/validateRegister";
-import { idOrUsernameInput } from './idOrUsernameInput';
-import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { RegisterUserInput } from './RegisterUserInput';
 
 @ObjectType()
 class FieldError {
@@ -127,6 +128,44 @@ export class UserResolver {
         return { user };
     }
 
+    @Mutation(() => UserResponse)
+    async setFullName(
+        @Arg('text') text: string,
+        @Ctx() { req }: MyContext
+    ): Promise<UserResponse> {
+        const { userId } = req.session;
+        let user = await User.findOne(userId);
+        if(!user){
+            return({
+                errors: [
+                    {
+                        field: 'token',
+                        message: 'user no longer exists'
+                    }
+                ]
+            });
+        }
+        const fullName = text.split(' ');
+        if(fullName.length < 2){
+            return({
+                errors: [
+                    {
+                        field: 'fullName',
+                        message: 'First or last name is missing'
+                    }
+                ]
+            });
+        }
+        // gets first and middle name(s), example: ['first name', 'middle', 'middle', '...', 'last name'] -> ['first name', 'middle', 'middle', '...',]
+        // then join them as "first middle middle ..." and stores as user first name in DB firstName column
+        const firstName = fullName.filter((_name: string, i: number, nameArr: string[]) => nameArr.length - 1 !== i?? false).join(' '); 
+        const lastName = fullName[fullName.length - 1]; // get the last element as the last name
+        user.firstName = firstName;
+        user.lastName = lastName;
+        await User.update({id: userId}, {firstName: firstName, lastName: lastName});
+        return { user };
+    }
+
 
     @Query(()=>User, {nullable: true})
     me(@Ctx() { req }: MyContext) {
@@ -139,9 +178,7 @@ export class UserResolver {
 
     @Query(()=>User, {nullable: true})
     getUser(
-        @Arg('username') username: string,
-        @Ctx() { req }: MyContext
-        // @Arg('options') options: idOrUsernameInput,
+        @Arg('username') username: string
     ) {
         // const {username, id} = options;
         // if(id){
@@ -155,7 +192,7 @@ export class UserResolver {
 
     @Mutation(() => UserResponse)
     async register(
-        @Arg('options') options: UsernamePasswordInput,
+        @Arg('options') options: RegisterUserInput,
         @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
         const errors = validateRegister(options);
@@ -166,20 +203,20 @@ export class UserResolver {
         let user;
         try{
             user = await User.create({
-                username: options.username, 
+                ...options,
                 password: hashedPassword,
-                email: options.email,
             }).save();
-
-            console.log('user: ', user);
         }
         catch (e){
             if(e.code === '23505'){
+                const {detail} = e;
+                const field: string = detail.slice(detail.indexOf('(') + 1, detail.indexOf(')'));
+                console.log(detail, field)
                 return {
                     errors: [
                         {
-                            field:'usernameOrEmail',
-                            message:'username has already been taken'
+                            field: field,
+                            message:`${capitalizeFirstLetter(splitOnUpperCase(field).join(' ').toLowerCase())} has already been taken`
                         }
                     ],
                 };
