@@ -1,8 +1,11 @@
 import AWS from 'aws-sdk';
+import dotenv from 'dotenv';
 
-const AWS_ID = 'AKIAJMCZWVAVPNXT352Q';
-const AWS_SECRET = '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';
-const AWS_BUCKET_NAME = 'justresume';
+dotenv.config();
+
+const AWS_ID = process.env.AWS_ID;
+const AWS_SECRET = process.env.AWS_SECRET;
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
 const aws_connection_params = {
     Bucket: AWS_BUCKET_NAME,
