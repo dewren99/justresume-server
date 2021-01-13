@@ -14,7 +14,7 @@ export class Resume extends BaseEntity {
 
   @Field(()=>String, { nullable: true})
   @Column({nullable: true})
-  resumeLink!: string;
+  link!: string;
 
   @Field(() => String)
   @CreateDateColumn()

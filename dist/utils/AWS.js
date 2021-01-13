@@ -5,17 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.s3 = void 0;
 const aws_sdk_1 = __importDefault(require("aws-sdk"));
-const AWS_ID = 'AKIAJMCZWVAVPNXT352Q';
-const AWS_SECRET = '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';
-const AWS_BUCKET_NAME = 'justresume';
-const aws_connection_params = {
-    Bucket: AWS_BUCKET_NAME,
-    CreateBucketConfiguration: {
-        LocationConstraint: "us-west-2",
-    }
-};
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 exports.s3 = new aws_sdk_1.default.S3({
-    accessKeyId: AWS_ID,
-    secretAccessKey: AWS_SECRET
+    accessKeyId: process.env.AWS_ID,
+    secretAccessKey: process.env.AWS_SECRET
 });
 //# sourceMappingURL=AWS.js.map

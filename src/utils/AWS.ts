@@ -3,20 +3,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const AWS_ID = process.env.AWS_ID;
-const AWS_SECRET = process.env.AWS_SECRET;
-const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
-
-const aws_connection_params = {
-    Bucket: AWS_BUCKET_NAME,
-    CreateBucketConfiguration: {
-        LocationConstraint: "us-west-2",
-    }
-};
-
 export const s3 = new AWS.S3({
-    accessKeyId: AWS_ID,
-    secretAccessKey: AWS_SECRET
+    accessKeyId: process.env.AWS_ID,
+    secretAccessKey: process.env.AWS_SECRET
 });
 
 // s3.createBucket(aws_connection_params, (err, data) => {

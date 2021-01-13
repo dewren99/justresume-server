@@ -25,6 +25,7 @@ const typeorm_1 = require("typeorm");
 const constants_1 = require("./constants");
 const User_1 = require("./entities/User");
 const hello_1 = require("./resolvers/hello");
+const resume_1 = require("./resolvers/resume");
 const user_1 = require("./resolvers/user");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const conn = yield typeorm_1.createConnection({
@@ -63,7 +64,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
         schema: yield type_graphql_1.buildSchema({
-            resolvers: [hello_1.HelloResolver, user_1.UserResolver],
+            resolvers: [hello_1.HelloResolver, user_1.UserResolver, resume_1.ResumeResolver],
             validate: false,
         }),
         context: ({ req, res }) => ({ req, res, redis }),

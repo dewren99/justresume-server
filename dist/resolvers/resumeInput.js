@@ -9,39 +9,29 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Resume = void 0;
+exports.ResumeInput = void 0;
+const stream_1 = require("stream");
 const type_graphql_1 = require("type-graphql");
-const typeorm_1 = require("typeorm");
-let Resume = class Resume extends typeorm_1.BaseEntity {
+let ResumeInput = class ResumeInput {
 };
 __decorate([
-    type_graphql_1.Field(),
-    typeorm_1.PrimaryGeneratedColumn(),
-    __metadata("design:type", Number)
-], Resume.prototype, "id", void 0);
+    type_graphql_1.Field(() => stream_1.Stream),
+    __metadata("design:type", stream_1.Stream)
+], ResumeInput.prototype, "stream", void 0);
 __decorate([
     type_graphql_1.Field(),
-    typeorm_1.Column({ nullable: true }),
-    __metadata("design:type", Number)
-], Resume.prototype, "ownerId", void 0);
-__decorate([
-    type_graphql_1.Field(() => String, { nullable: true }),
-    typeorm_1.Column({ nullable: true }),
     __metadata("design:type", String)
-], Resume.prototype, "link", void 0);
+], ResumeInput.prototype, "filename", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.CreateDateColumn(),
-    __metadata("design:type", Date)
-], Resume.prototype, "createdAt", void 0);
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], ResumeInput.prototype, "mimetype", void 0);
 __decorate([
-    type_graphql_1.Field(() => String),
-    typeorm_1.UpdateDateColumn(),
-    __metadata("design:type", Date)
-], Resume.prototype, "updatedAt", void 0);
-Resume = __decorate([
-    type_graphql_1.ObjectType(),
-    typeorm_1.Entity()
-], Resume);
-exports.Resume = Resume;
-//# sourceMappingURL=Resume.js.map
+    type_graphql_1.Field(),
+    __metadata("design:type", String)
+], ResumeInput.prototype, "encoding", void 0);
+ResumeInput = __decorate([
+    type_graphql_1.InputType()
+], ResumeInput);
+exports.ResumeInput = ResumeInput;
+//# sourceMappingURL=resumeInput.js.map

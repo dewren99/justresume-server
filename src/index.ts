@@ -3,6 +3,7 @@ import connectRedis from 'connect-redis';
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
+// import { GraphQLUpload, FileUpload } from 'graphql-upload';
 import Redis from 'ioredis';
 import path from 'path';
 import 'reflect-metadata';
@@ -11,9 +12,9 @@ import { createConnection } from 'typeorm';
 import { COOKIE_NAME } from './constants';
 import { User } from './entities/User';
 import { HelloResolver } from './resolvers/hello';
+import { ResumeResolver } from './resolvers/resume';
 import { UserResolver } from './resolvers/user';
 import { MyContext } from './types';
-import { s3 } from './utils/AWS';
 
 const main = async () => {
 
@@ -62,7 +63,7 @@ const main = async () => {
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [HelloResolver, UserResolver],
+            resolvers: [HelloResolver, UserResolver, ResumeResolver],
             validate: false,
         }),
         context: ({req, res}): MyContext => ({ req, res, redis }),
