@@ -34,4 +34,4 @@ ResumeInput = __decorate([
     type_graphql_1.InputType()
 ], ResumeInput);
 exports.ResumeInput = ResumeInput;
-//# sourceMappingURL=resumeInput.js.map
+//# sourceMappingURL=ResumeInput.js.map

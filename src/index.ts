@@ -1,12 +1,11 @@
+import 'reflect-metadata';
 import { ApolloServer } from 'apollo-server-express';
 import connectRedis from 'connect-redis';
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
-// import { GraphQLUpload, FileUpload } from 'graphql-upload';
 import Redis from 'ioredis';
 import path from 'path';
-import 'reflect-metadata';
 import { buildSchema } from 'type-graphql';
 import { createConnection } from 'typeorm';
 import { COOKIE_NAME } from './constants';
@@ -15,6 +14,9 @@ import { HelloResolver } from './resolvers/hello';
 import { ResumeResolver } from './resolvers/resume';
 import { UserResolver } from './resolvers/user';
 import { MyContext } from './types';
+import { Resume } from './entities/Resume';
+import { Profile } from './entities/Profile';
+import { ProfileResolver } from './resolvers/profile';
 
 const main = async () => {
 
@@ -27,7 +29,7 @@ const main = async () => {
         logging: true,
         synchronize: true,
         migrations: [path.join(__dirname, "./migrations/*")],
-        entities: [User]
+        entities: [User, Resume, Profile]
     });
 
     await conn.runMigrations();
@@ -63,7 +65,7 @@ const main = async () => {
 
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
-            resolvers: [HelloResolver, UserResolver, ResumeResolver],
+            resolvers: [HelloResolver, UserResolver, ResumeResolver, ProfileResolver],
             validate: false,
         }),
         context: ({req, res}): MyContext => ({ req, res, redis }),

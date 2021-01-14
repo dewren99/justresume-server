@@ -3,7 +3,7 @@ import argon2 from 'argon2';
 import prettyMilliseconds from "pretty-ms";
 import { capitalizeFirstLetter } from '../utils/capitalizeFirstLetter';
 import { splitOnUpperCase } from '../utils/splitOnUpperCase';
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import { v4 } from "uuid";
 import { COOKIE_NAME, FORGOT_PASSWORD_LINK_EXPIRATION_DATE, FORGOT_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
@@ -11,6 +11,7 @@ import { MyContext } from "../types";
 import sendEmail from "../utils/sendEmail";
 import validateRegister from "../utils/validateRegister";
 import { RegisterUserInput } from './RegisterUserInput';
+import { Any } from 'typeorm';
 
 @ObjectType()
 class FieldError {
@@ -28,6 +29,7 @@ class UserResponse {
     @Field(() => User, {nullable: true})
     user?: User
 }
+
 
 @Resolver(User)
 export class UserResolver {
@@ -107,28 +109,6 @@ export class UserResolver {
     }
 
     @Mutation(() => UserResponse)
-    async setAboutMe(
-        @Arg('text') text: string,
-        @Ctx() { req }: MyContext
-    ): Promise<UserResponse> {
-        const { userId } = req.session;
-        let user = await User.findOne(userId);
-        if(!user){
-            return({
-                errors: [
-                    {
-                        field: 'token',
-                        message: 'user no longer exists'
-                    }
-                ]
-            });
-        }
-        user.aboutMe = text;
-        await User.update({id: userId}, {aboutMe: text});
-        return { user };
-    }
-
-    @Mutation(() => UserResponse)
     async setFullName(
         @Arg('text') text: string,
         @Ctx() { req }: MyContext
@@ -178,16 +158,22 @@ export class UserResolver {
 
     @Query(()=>User, {nullable: true})
     getUser(
-        @Arg('username') username: string
+        @Arg('username', {nullable: true}) username: string, // change to or add fetch by userid
+        @Ctx() { req }: MyContext
     ) {
         // const {username, id} = options;
         // if(id){
         //     return User.findOne(id);
         // }
+        const userId = req.session.userId;
         if(username){
-            return User.findOne({username: username});
+            console.log('HERE')
+            return User.findOne({username: username}, {relations: ['resume', 'profile']});
         }
-        return null;
+        if(!userId){
+            return null;
+        }
+        return User.findOne({id: userId}, {relations: ['resume', 'profile']});
     }
 
     @Mutation(() => UserResponse)

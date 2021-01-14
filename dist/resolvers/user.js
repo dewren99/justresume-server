@@ -120,25 +120,6 @@ let UserResolver = class UserResolver {
             return { user };
         });
     }
-    setAboutMe(text, { req }) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const { userId } = req.session;
-            let user = yield User_1.User.findOne(userId);
-            if (!user) {
-                return ({
-                    errors: [
-                        {
-                            field: 'token',
-                            message: 'user no longer exists'
-                        }
-                    ]
-                });
-            }
-            user.aboutMe = text;
-            yield User_1.User.update({ id: userId }, { aboutMe: text });
-            return { user };
-        });
-    }
     setFullName(text, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
             const { userId } = req.session;
@@ -178,11 +159,16 @@ let UserResolver = class UserResolver {
         }
         return User_1.User.findOne(req.session.userId);
     }
-    getUser(username) {
+    getUser(username, { req }) {
+        const userId = req.session.userId;
         if (username) {
-            return User_1.User.findOne({ username: username });
+            console.log('HERE');
+            return User_1.User.findOne({ username: username }, { relations: ['resume', 'profile'] });
         }
-        return null;
+        if (!userId) {
+            return null;
+        }
+        return User_1.User.findOne({ id: userId }, { relations: ['resume', 'profile'] });
     }
     register(options, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -284,14 +270,6 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
-], UserResolver.prototype, "setAboutMe", null);
-__decorate([
-    type_graphql_1.Mutation(() => UserResponse),
-    __param(0, type_graphql_1.Arg('text')),
-    __param(1, type_graphql_1.Ctx()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", Promise)
 ], UserResolver.prototype, "setFullName", null);
 __decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
@@ -302,9 +280,10 @@ __decorate([
 ], UserResolver.prototype, "me", null);
 __decorate([
     type_graphql_1.Query(() => User_1.User, { nullable: true }),
-    __param(0, type_graphql_1.Arg('username')),
+    __param(0, type_graphql_1.Arg('username', { nullable: true })),
+    __param(1, type_graphql_1.Ctx()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], UserResolver.prototype, "getUser", null);
 __decorate([

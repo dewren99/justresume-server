@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { extname } from 'path';
 import { MyContext } from '../types';
 import { isAuth } from '../middleware/isAuth';
+import { User } from '../entities/User';
 
 dotenv.config();
 
@@ -16,29 +17,53 @@ export class ResumeResolver{
         return Resume.findOne({ownerId: userId});
     }
     
-    @Mutation(()=>String)
+    @Mutation(()=>Resume)
     @UseMiddleware(isAuth)
     async uploadResume(
         @Arg('resume', () => GraphQLUpload) resume: FileUpload,
         @Ctx() { req }: MyContext
-    ): Promise<string> {
-        const { createReadStream, filename, mimetype } = await resume;
+    ): Promise<Resume> {
         const userId = req.session.userId;
+        const { createReadStream, filename, mimetype } = await resume;
+
+        const bucketPath =  `${userId}/resume/`;
+        const resumeName = `${Date.now()}-${filename}`;
+
         const params = {
             Bucket: process.env.AWS_BUCKET_NAME as string,
             Body: createReadStream(),
             ContentType: mimetype,
-            Key: `${userId}/resume/${filename}`,
+            Key: bucketPath + resumeName,
+            ACL: 'public-read'
         }
-        console.log('resume', resume);
-        const uploadRes = await s3.upload(params, (err: any, data: { Location: any; })=>{
+        console.log('params ContentType', params.ContentType);
+        const { Location } = await s3.upload(params, (err: any, data: { Location: any; })=>{
             if(err){
                 console.log(err);
                 throw err;
             }
             console.log(`File uploaded successfully. ${data.Location}`);
         }).promise();
-        console.log('uploadRes', uploadRes);
-        return uploadRes.Location;
+
+        // const Location = await new Promise((resolve, reject) => {
+        //     s3.getSignedUrl('putObject', params, (err: any, url: string) => {
+        //     if (err) {
+        //         console.log(err);
+        //         return reject(err);
+        //     }
+        //     console.log('URL:', url);
+        //     return resolve(url);
+        //     });
+        // });
+
+        const user = await User.findOne({id: userId}, {relations: ['resume']});
+        if(user?.resume){
+            console.log('user has resume already', user.resume);
+            user.resume.link = Location;
+            const resumeId =  user.resume.id;
+            Resume.update(resumeId, { link: Location });
+            return user.resume;
+        }
+        return Resume.create({ link: Location, user}).save();
     }
 }

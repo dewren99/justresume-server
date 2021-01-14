@@ -31,6 +31,7 @@ const Resume_1 = require("../entities/Resume");
 const AWS_1 = require("../utils/AWS");
 const dotenv_1 = __importDefault(require("dotenv"));
 const isAuth_1 = require("../middleware/isAuth");
+const User_1 = require("../entities/User");
 dotenv_1.default.config();
 class ResumeResolver {
     getResumeByUserId(userId) {
@@ -38,24 +39,34 @@ class ResumeResolver {
     }
     uploadResume(resume, { req }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { createReadStream, filename, mimetype } = yield resume;
             const userId = req.session.userId;
+            const { createReadStream, filename, mimetype } = yield resume;
+            const bucketPath = `${userId}/resume/`;
+            const resumeName = `${Date.now()}-${filename}`;
             const params = {
                 Bucket: process.env.AWS_BUCKET_NAME,
                 Body: createReadStream(),
                 ContentType: mimetype,
-                Key: `${userId}/resume/${filename}`,
+                Key: bucketPath + resumeName,
+                ACL: 'public-read'
             };
-            console.log('resume', resume);
-            const uploadRes = yield AWS_1.s3.upload(params, (err, data) => {
+            console.log('params ContentType', params.ContentType);
+            const { Location } = yield AWS_1.s3.upload(params, (err, data) => {
                 if (err) {
                     console.log(err);
                     throw err;
                 }
                 console.log(`File uploaded successfully. ${data.Location}`);
             }).promise();
-            console.log('uploadRes', uploadRes);
-            return uploadRes.Location;
+            const user = yield User_1.User.findOne({ id: userId }, { relations: ['resume'] });
+            if (user === null || user === void 0 ? void 0 : user.resume) {
+                console.log('user has resume already', user.resume);
+                user.resume.link = Location;
+                const resumeId = user.resume.id;
+                Resume_1.Resume.update(resumeId, { link: Location });
+                return user.resume;
+            }
+            return Resume_1.Resume.create({ link: Location, user }).save();
         });
     }
 }
@@ -67,7 +78,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ResumeResolver.prototype, "getResumeByUserId", null);
 __decorate([
-    type_graphql_1.Mutation(() => String),
+    type_graphql_1.Mutation(() => Resume_1.Resume),
     type_graphql_1.UseMiddleware(isAuth_1.isAuth),
     __param(0, type_graphql_1.Arg('resume', () => apollo_server_express_1.GraphQLUpload)),
     __param(1, type_graphql_1.Ctx()),

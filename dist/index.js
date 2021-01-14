@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("reflect-metadata");
 const apollo_server_express_1 = require("apollo-server-express");
 const connect_redis_1 = __importDefault(require("connect-redis"));
 const cors_1 = __importDefault(require("cors"));
@@ -19,7 +20,6 @@ const express_1 = __importDefault(require("express"));
 const express_session_1 = __importDefault(require("express-session"));
 const ioredis_1 = __importDefault(require("ioredis"));
 const path_1 = __importDefault(require("path"));
-require("reflect-metadata");
 const type_graphql_1 = require("type-graphql");
 const typeorm_1 = require("typeorm");
 const constants_1 = require("./constants");
@@ -27,6 +27,9 @@ const User_1 = require("./entities/User");
 const hello_1 = require("./resolvers/hello");
 const resume_1 = require("./resolvers/resume");
 const user_1 = require("./resolvers/user");
+const Resume_1 = require("./entities/Resume");
+const Profile_1 = require("./entities/Profile");
+const profile_1 = require("./resolvers/profile");
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const conn = yield typeorm_1.createConnection({
         type: 'postgres',
@@ -36,7 +39,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         logging: true,
         synchronize: true,
         migrations: [path_1.default.join(__dirname, "./migrations/*")],
-        entities: [User_1.User]
+        entities: [User_1.User, Resume_1.Resume, Profile_1.Profile]
     });
     yield conn.runMigrations();
     const app = express_1.default();
@@ -64,7 +67,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     }));
     const apolloServer = new apollo_server_express_1.ApolloServer({
         schema: yield type_graphql_1.buildSchema({
-            resolvers: [hello_1.HelloResolver, user_1.UserResolver, resume_1.ResumeResolver],
+            resolvers: [hello_1.HelloResolver, user_1.UserResolver, resume_1.ResumeResolver, profile_1.ProfileResolver],
             validate: false,
         }),
         context: ({ req, res }) => ({ req, res, redis }),

@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, BaseEntity, OneToMany } from "typeorm";
 import { Field, ObjectType } from "type-graphql";
+import { BaseEntity, Column, CreateDateColumn, Entity, JoinColumn, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Profile } from "./Profile";
+import { Resume } from "./Resume";
 // import { Post } from "./Post";
 // import { Upvote } from "./Upvote";
 
@@ -29,9 +31,19 @@ export class User extends BaseEntity {
   @Column()
   password!: string;
 
-  @Field(() => String, {nullable: true})
-  @Column({nullable: true})
-  aboutMe?: string;
+  // @Field(() => String, {nullable: true})
+  // @Column({nullable: true})
+  // aboutMe?: string;
+
+  @Field(()=>Resume, {nullable: true})
+  @OneToOne(()=>Resume, resume => resume.user, {nullable: true})
+  @JoinColumn()
+  resume: Resume;
+
+  @Field(()=>Profile, {nullable: true})
+  @OneToOne(()=>Profile, profile => profile.user)
+  @JoinColumn()
+  profile: Profile;
 
   @Field(() => String)
   @CreateDateColumn()

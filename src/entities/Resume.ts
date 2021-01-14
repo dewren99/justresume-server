@@ -1,5 +1,6 @@
 import { Field, ObjectType } from "type-graphql";
-import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, Entity, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { User } from "./User";
 
 @ObjectType()
 @Entity()
@@ -8,9 +9,8 @@ export class Resume extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Field()
-  @Column({nullable: true})
-  ownerId!: number;
+  @OneToOne(()=>User, user => user.resume)
+  user: User;
 
   @Field(()=>String, { nullable: true})
   @Column({nullable: true})
